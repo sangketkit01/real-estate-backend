@@ -15,6 +15,7 @@ type Server struct {
 	store      *db.Store
 	config     util.Config
 	tokenMaker util.Maker
+	isSecure   bool
 }
 
 func NewServer(store *db.Store, config util.Config) (*Server, error) {
@@ -24,10 +25,12 @@ func NewServer(store *db.Store, config util.Config) (*Server, error) {
 	}
 
 	server := &Server{
-		store:  store,
-		config: config,
+		store:      store,
+		config:     config,
 		tokenMaker: tokenMaker,
 	}
+
+	server.isSecure = config.Environment == "production"
 
 	err = server.setUpRoute()
 	if err != nil {
@@ -49,12 +52,12 @@ func (server *Server) setUpRoute() error {
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
-		MaxAge: 12 * time.Hour,
+		MaxAge:           12 * time.Hour,
 	}))
 
 	router.GET("/", server.HomePage)
 	router.POST("/login", server.LoginUser)
-	router.POST("/create-account",server.CreateUser)
+	router.POST("/create-account", server.CreateUser)
 
 	server.router = router
 

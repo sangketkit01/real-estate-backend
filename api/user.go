@@ -1,6 +1,8 @@
 package api
 
 import (
+	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 
@@ -8,8 +10,9 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/lib/pq"
 	db "github.com/sangketkit01/real-estate-backend/db/sqlc"
+	"github.com/sangketkit01/real-estate-backend/util"
+	"golang.org/x/crypto/bcrypt"
 )
-
 
 type LoginUserRequest struct {
 	Username string `json:"username" binding:"required"`
@@ -20,12 +23,39 @@ func (server *Server) LoginUser(ctx *gin.Context) {
 	var req LoginUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		log.Println(err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid credentials"})
+		ctx.JSON(http.StatusBadRequest, newErrorResponse("Invalid request."))
 		return
 	}
 
-	log.Println(req.Username, req.Password)
-	ctx.JSON(http.StatusOK, req)
+	user, err := server.store.LoginUser(ctx, req.Username)
+	if err != nil{
+		if err == sql.ErrNoRows{
+			ctx.JSON(http.StatusUnauthorized, newErrorResponse("Invalid credentials"))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	if err = util.CheckPassword(user.Password, req.Password) ; err != nil{
+		if err == bcrypt.ErrMismatchedHashAndPassword{
+			ctx.JSON(http.StatusUnauthorized, newErrorResponse("Invalid password"))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	
+	token, _, err := server.tokenMaker.CreateToken(user.Username, server.config.TokenDuration)
+	if err != nil{
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.SetCookie("token",token, 7 * 24 * 60 * 60, "/" , "localhost", server.isSecure, true)
+	ctx.JSON(http.StatusOK, messageResponse("Login successfully."))
 }
 
 type CreateUserRequst struct {
@@ -43,7 +73,13 @@ func (server *Server) CreateUser(ctx *gin.Context) {
 		for _, fieldErr := range validationErrors {
 			log.Println("Field:", fieldErr.Field(), "Error:", fieldErr.Tag())
 		}
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		ctx.JSON(http.StatusBadRequest, errorResponse(errors.New("Invalid request.")))
+		return
+	}
+
+	hashedPassword, err := util.HashedPassword(req.Password)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
@@ -52,27 +88,27 @@ func (server *Server) CreateUser(ctx *gin.Context) {
 		Name:     req.Username,
 		Email:    req.Email,
 		Phone:    req.Phone,
-		Password: req.Password,
+		Password: hashedPassword,
 	}
 
 	user, err := server.store.CreateUser(ctx, arg)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			if pqErr.Code == "23505" {
-				ctx.JSON(http.StatusForbidden, gin.H{"error": "Username or email already exists"})
+				ctx.JSON(http.StatusForbidden, errorResponse(errors.New("Username or Email already exist.")))
 				return
 			}
 		}
 
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	_, _, err = server.tokenMaker.CreateToken(user.Username, server.config.TokenDuration)
-	if err != nil{
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error" : err.Error()})
+	token, _, err := server.tokenMaker.CreateToken(user.Username, server.config.TokenDuration)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
-	// ctx.SetCookie("token",token, 7 * 24 * 60 * 60 , "/", "localhost", false, true)
-	ctx.JSON(http.StatusOK, "Create account seccessfully")
+	ctx.SetCookie("token",token, 7 * 24 * 60 * 60 , "/", "localhost", server.isSecure, true)
+	ctx.JSON(http.StatusOK, messageResponse("Create account successfully."))
 }
