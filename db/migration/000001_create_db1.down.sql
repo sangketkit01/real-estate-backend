@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS assets;
+DROP TABLE IF EXISTS asset_contacts;
+DROP TABLE IF EXISTS asset_images;
