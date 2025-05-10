@@ -5,7 +5,7 @@ import (
 	"log"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	"github.com/sangketkit01/real-estate-backend/api"
+	apifiber "github.com/sangketkit01/real-estate-backend/api_fiber"
 	db "github.com/sangketkit01/real-estate-backend/db/sqlc"
 	"github.com/sangketkit01/real-estate-backend/util"
 )
@@ -14,7 +14,7 @@ const DB_SOURCE = "postgres://root:secret@localhost:5433/simple_real_estate?sslm
 
 func main() {
 	config, err := util.LoadConfig(".")
-	if err != nil{
+	if err != nil {
 		log.Fatalln(err)
 	}
 
@@ -24,7 +24,7 @@ func main() {
 	}
 	store := db.NewStore(conn)
 
-	server, err := api.NewServer(store, config)
+	server, err := apifiber.NewServer(store, config)
 	if err != nil {
 		log.Fatalln(err)
 	}

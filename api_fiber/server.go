@@ -1,17 +1,16 @@
-package api
+package apifiber
 
 import (
 	"fmt"
-	"time"
 
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	db "github.com/sangketkit01/real-estate-backend/db/sqlc"
 	"github.com/sangketkit01/real-estate-backend/util"
 )
 
 type Server struct {
-	router     *gin.Engine
+	router     *fiber.App
 	store      *db.Store
 	config     util.Config
 	tokenMaker util.Maker
@@ -41,23 +40,23 @@ func NewServer(store *db.Store, config util.Config) (*Server, error) {
 }
 
 func (server *Server) Start() error {
-	return server.router.Run(":8080")
+	return server.router.Listen(":8080")
 }
 
 func (server *Server) setUpRoute() error {
-	router := gin.Default()
+	router := fiber.New()
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
+		AllowOrigins:     "http://localhost:3000",
+		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+		AllowHeaders:     "Origin, Content-Type, Authorization",
+		ExposeHeaders:    "Content-Length",
 		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
+		MaxAge:           12 * 60 * 60,
 	}))
 
-	router.GET("/", server.HomePage)
-	router.POST("/login", server.LoginUser)
-	router.POST("/create-account", server.CreateUser)
+	router.Get("/",server.HomePage)
+	router.Post("/create-user",server.CreateUser)
+	router.Post("/login-user",server.LoginUser)
 
 	server.router = router
 

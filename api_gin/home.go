@@ -1,4 +1,4 @@
-package api
+package apigin
 
 import (
 	"net/http"
