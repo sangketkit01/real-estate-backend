@@ -22,6 +22,11 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	err = conn.Ping()
+	if err != nil {
+		log.Fatalln("cannot connect to DB:", err)
+	}
 	store := db.NewStore(conn)
 
 	server, err := apifiber.NewServer(store, config)

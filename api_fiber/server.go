@@ -44,7 +44,22 @@ func (server *Server) Start() error {
 }
 
 func (server *Server) setUpRoute() error {
-	router := fiber.New()
+	router := fiber.New(fiber.Config{
+		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			code := fiber.StatusInternalServerError
+			msg := "Internal Server Error"
+	
+			if e, ok := err.(*fiber.Error); ok {
+				code = e.Code
+				msg = e.Message
+			}
+	
+			return c.Status(code).JSON(fiber.Map{
+				"error": msg,
+			})
+		},
+	})
+	
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     "http://localhost:3000",
 		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
@@ -57,6 +72,7 @@ func (server *Server) setUpRoute() error {
 	router.Get("/",server.HomePage)
 	router.Post("/create-user",server.CreateUser)
 	router.Post("/login-user",server.LoginUser)
+	router.Post("/create-asset",server.CreateAsset)
 
 	server.router = router
 

@@ -10,7 +10,12 @@ import (
 
 type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	GetAssetById(ctx context.Context, id int64) (GetAssetByIdRow, error)
+	GetAssetsByUsername(ctx context.Context, owner string) ([]GetAssetsByUsernameRow, error)
 	GetUser(ctx context.Context, username string) (User, error)
+	InsertAsset(ctx context.Context, arg InsertAssetParams) (Asset, error)
+	InsertAssetContact(ctx context.Context, arg InsertAssetContactParams) (AssetContact, error)
+	InsertAssetImage(ctx context.Context, arg InsertAssetImageParams) (AssetImage, error)
 	LoginUser(ctx context.Context, username string) (LoginUserRow, error)
 }
 
