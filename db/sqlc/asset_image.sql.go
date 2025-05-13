@@ -9,6 +9,16 @@ import (
 	"context"
 )
 
+const deleteImage = `-- name: DeleteImage :exec
+DELETE FROM asset_images
+WHERE id = $1
+`
+
+func (q *Queries) DeleteImage(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteImage, id)
+	return err
+}
+
 const insertAssetImage = `-- name: InsertAssetImage :one
 INSERT INTO asset_images 
     (asset_id, image_url)

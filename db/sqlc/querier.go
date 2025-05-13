@@ -11,6 +11,7 @@ import (
 type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteAsset(ctx context.Context, id int64) error
+	DeleteImage(ctx context.Context, id int64) error
 	GetAssetById(ctx context.Context, id int64) (GetAssetByIdRow, error)
 	GetAssetsByUsername(ctx context.Context, owner string) ([]GetAssetsByUsernameRow, error)
 	GetContact(ctx context.Context, id int64) (AssetContact, error)

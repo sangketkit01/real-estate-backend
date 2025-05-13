@@ -90,8 +90,12 @@ func (server *Server) setupProtectedRoutes(router *fiber.App) {
 	assetGroup := authGroup.Group("/asset", server.AssetMiddleware())
 	assetGroup.Put("/:asset_id", server.UpdateAsset)
 	assetGroup.Delete("/:asset_id",server.DeleteAsset)
+
 	assetGroup.Post("/:asset_id/add-contact", server.AddNewContact)
+	assetGroup.Post("/:asset_id/add-image",server.AddNewImage)
 
 	assetGroup.Put("/:asset_id/:contact_id", server.UpdateContact)
-	assetGroup.Delete(":/asset_id/:contact_id", server.DeleteContact)
+	assetGroup.Delete("/:asset_id/:contact_id", server.DeleteContact)
+
+	assetGroup.Delete("/:asset_id/:image_id", server.DeleteImage)
 }

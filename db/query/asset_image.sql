@@ -4,3 +4,7 @@ INSERT INTO asset_images
 VALUES 
     ($1, $2)
 RETURNING *;
+
+-- name: DeleteImage :exec
+DELETE FROM asset_images
+WHERE id = $1;

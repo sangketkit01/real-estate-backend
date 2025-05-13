@@ -34,8 +34,8 @@ func (server *Server) AddNewContact(c *fiber.Ctx) error{
 }
 
 type UpdateContactRequest struct{
-	ContactName string `json:"contact_name" validate:"required"`
-	ContactDetail string `json:"contact_detail" validate:"required"`
+	ContactName *string `json:"contact_name"`
+	ContactDetail *string `json:"contact_detail"`
 }
 
 func (server *Server) UpdateContact(c *fiber.Ctx) error{
@@ -51,8 +51,8 @@ func (server *Server) UpdateContact(c *fiber.Ctx) error{
 
 	arg := db.UpdateContactParams{
 		ID: int64(contactId),
-		ContactName: req.ContactName,
-		ContactDetail: req.ContactDetail,
+		ContactName: *req.ContactName,
+		ContactDetail: *req.ContactDetail,
 	}
 
 	err = server.store.UpdateContact(c.Context(), arg)

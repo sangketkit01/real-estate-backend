@@ -178,7 +178,7 @@ func (q *Queries) InsertAsset(ctx context.Context, arg InsertAssetParams) (Asset
 
 const updateAsset = `-- name: UpdateAsset :exec
 UPDATE assets
-SET price = $1, detail = $2
+SET price = coalesce($1, price), detail = coalesce($2, detail)
 WHERE id = $3
 `
 

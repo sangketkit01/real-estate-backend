@@ -68,7 +68,7 @@ func (q *Queries) RemoveContact(ctx context.Context, id int64) error {
 
 const updateContact = `-- name: UpdateContact :exec
 UPDATE asset_contacts
-SET contact_name = $1, contact_detail = $2
+SET contact_name = coalesce($1, contact_name), contact_detail = coalesce($2, contact_detail)
 WHERE id = $3
 `
 

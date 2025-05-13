@@ -32,7 +32,7 @@ func (server *Server) AuthMiddleware() fiber.Handler {
 
 func (server *Server) AssetMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		assetId, err := strconv.Atoi(c.Params("asset_id"))
+		assetId, err := strconv.Atoi(c.Params("asset_id", "no asset id"))
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 		}
@@ -40,7 +40,7 @@ func (server *Server) AssetMiddleware() fiber.Handler {
 		asset, err := server.store.GetAssetById(c.Context(), int64(assetId))
 		if err != nil {
 			if err == sql.ErrNoRows {
-				return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "asset not found"})
+				return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "asset not found"})
 			}
 
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})

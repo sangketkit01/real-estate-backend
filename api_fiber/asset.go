@@ -81,8 +81,8 @@ func (server *Server) CreateAsset(c *fiber.Ctx) error {
 }
 
 type UpdateAssetRequest struct {
-	Price  int64  `json:"price" validate:"required,min=0"`
-	Detail string `json:"detail" validate:"required"`
+	Price  *int64  `json:"price" validate:"omitempty,min=0"`
+	Detail *string `json:"detail"`
 }
 
 func (server *Server) UpdateAsset(c *fiber.Ctx) error {
@@ -95,8 +95,8 @@ func (server *Server) UpdateAsset(c *fiber.Ctx) error {
 
 	arg := db.UpdateAssetParams{
 		ID:     int64(assetId),
-		Price:  req.Price,
-		Detail: req.Detail,
+		Price:  *req.Price,
+		Detail: *req.Detail,
 	}
 	err := server.store.UpdateAsset(c.Context(), arg)
 	if err != nil {
@@ -106,7 +106,7 @@ func (server *Server) UpdateAsset(c *fiber.Ctx) error {
 	return okResponse(c, "update asset successfully.")
 }
 
-func (server *Server) DeleteAsset(c *fiber.Ctx) error{
+func (server *Server) DeleteAsset(c *fiber.Ctx) error {
 	assetId := c.Locals("asset_id").(int)
 	err := server.store.DeleteAsset(c.Context(), int64(assetId))
 	if err != nil {
