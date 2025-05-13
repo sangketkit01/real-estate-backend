@@ -9,6 +9,25 @@ import (
 	"context"
 )
 
+const getContact = `-- name: GetContact :one
+SELECT id, asset_id, contact_name, contact_detail, created_at, updated_at FROM asset_contacts 
+WHERE id = $1
+`
+
+func (q *Queries) GetContact(ctx context.Context, id int64) (AssetContact, error) {
+	row := q.db.QueryRowContext(ctx, getContact, id)
+	var i AssetContact
+	err := row.Scan(
+		&i.ID,
+		&i.AssetID,
+		&i.ContactName,
+		&i.ContactDetail,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const insertAssetContact = `-- name: InsertAssetContact :one
 INSERT INTO asset_contacts
     (asset_id, contact_name, contact_detail)
@@ -35,4 +54,31 @@ func (q *Queries) InsertAssetContact(ctx context.Context, arg InsertAssetContact
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const removeContact = `-- name: RemoveContact :exec
+DELETE FROM asset_contacts 
+WHERE id = $1
+`
+
+func (q *Queries) RemoveContact(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, removeContact, id)
+	return err
+}
+
+const updateContact = `-- name: UpdateContact :exec
+UPDATE asset_contacts
+SET contact_name = $1, contact_detail = $2
+WHERE id = $3
+`
+
+type UpdateContactParams struct {
+	ContactName   string `json:"contact_name"`
+	ContactDetail string `json:"contact_detail"`
+	ID            int64  `json:"id"`
+}
+
+func (q *Queries) UpdateContact(ctx context.Context, arg UpdateContactParams) error {
+	_, err := q.db.ExecContext(ctx, updateContact, arg.ContactName, arg.ContactDetail, arg.ID)
+	return err
 }

@@ -10,13 +10,18 @@ import (
 
 type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteAsset(ctx context.Context, id int64) error
 	GetAssetById(ctx context.Context, id int64) (GetAssetByIdRow, error)
 	GetAssetsByUsername(ctx context.Context, owner string) ([]GetAssetsByUsernameRow, error)
+	GetContact(ctx context.Context, id int64) (AssetContact, error)
 	GetUser(ctx context.Context, username string) (User, error)
 	InsertAsset(ctx context.Context, arg InsertAssetParams) (Asset, error)
 	InsertAssetContact(ctx context.Context, arg InsertAssetContactParams) (AssetContact, error)
 	InsertAssetImage(ctx context.Context, arg InsertAssetImageParams) (AssetImage, error)
 	LoginUser(ctx context.Context, username string) (LoginUserRow, error)
+	RemoveContact(ctx context.Context, id int64) error
+	UpdateAsset(ctx context.Context, arg UpdateAssetParams) error
+	UpdateContact(ctx context.Context, arg UpdateContactParams) error
 }
 
 var _ Querier = (*Queries)(nil)

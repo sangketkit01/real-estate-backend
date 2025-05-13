@@ -43,3 +43,12 @@ FROM assets a
 LEFT JOIN asset_contacts ac ON ac.asset_id = a.id
 LEFT JOIN asset_images ai ON ai.asset_id = a.id
 WHERE a.owner = $1;
+
+-- name: UpdateAsset :exec
+UPDATE assets
+SET price = $1, detail = $2
+WHERE id = $3;
+
+-- name: DeleteAsset :exec
+DELETE FROM assets
+WHERE id = $1;

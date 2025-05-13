@@ -69,12 +69,29 @@ func (server *Server) setUpRoute() error {
 		MaxAge:           12 * 60 * 60,
 	}))
 
-	router.Get("/",server.HomePage)
-	router.Post("/create-user",server.CreateUser)
-	router.Post("/login-user",server.LoginUser)
-	router.Post("/create-asset",server.CreateAsset)
+	server.setupPublicRoutes(router)
+	server.setupProtectedRoutes(router)
 
 	server.router = router
 
 	return nil
+}
+
+func (server *Server) setupPublicRoutes(router *fiber.App) {
+	router.Get("/", server.HomePage)
+	router.Post("/create-user", server.CreateUser)
+	router.Post("/login-user", server.LoginUser)
+}
+
+func (server *Server) setupProtectedRoutes(router *fiber.App) {
+	authGroup := router.Group("/", server.AuthMiddleware())
+	authGroup.Post("/create-asset", server.CreateAsset)
+
+	assetGroup := authGroup.Group("/asset", server.AssetMiddleware())
+	assetGroup.Put("/:asset_id", server.UpdateAsset)
+	assetGroup.Delete("/:asset_id",server.DeleteAsset)
+	assetGroup.Post("/:asset_id/add-contact", server.AddNewContact)
+
+	assetGroup.Put("/:asset_id/:contact_id", server.UpdateContact)
+	assetGroup.Delete(":/asset_id/:contact_id", server.DeleteContact)
 }

@@ -11,6 +11,16 @@ import (
 	"time"
 )
 
+const deleteAsset = `-- name: DeleteAsset :exec
+DELETE FROM assets
+WHERE id = $1
+`
+
+func (q *Queries) DeleteAsset(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteAsset, id)
+	return err
+}
+
 const getAssetById = `-- name: GetAssetById :one
 SELECT 
   a.id,
@@ -164,4 +174,21 @@ func (q *Queries) InsertAsset(ctx context.Context, arg InsertAssetParams) (Asset
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const updateAsset = `-- name: UpdateAsset :exec
+UPDATE assets
+SET price = $1, detail = $2
+WHERE id = $3
+`
+
+type UpdateAssetParams struct {
+	Price  int64  `json:"price"`
+	Detail string `json:"detail"`
+	ID     int64  `json:"id"`
+}
+
+func (q *Queries) UpdateAsset(ctx context.Context, arg UpdateAssetParams) error {
+	_, err := q.db.ExecContext(ctx, updateAsset, arg.Price, arg.Detail, arg.ID)
+	return err
 }

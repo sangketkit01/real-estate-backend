@@ -1,7 +1,6 @@
 package apifiber
 
 import (
-	"database/sql"
 	"fmt"
 
 	"github.com/go-playground/validator"
@@ -33,23 +32,10 @@ type CreateAssetRequest struct {
 }
 
 func (server *Server) CreateAsset(c *fiber.Ctx) error {
-	tokenCookie := c.Cookies("token")
-	payload, err := server.tokenMaker.VerifyToken(tokenCookie)
-	if err != nil {
-		return fiber.NewError(fiber.StatusForbidden, "invalid token")
-	}
-
-	userData, err := server.store.GetUser(c.Context(), payload.Username)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return fiber.NewError(fiber.StatusForbidden, "user not found, then why are you here ?")
-		}
-
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-	}
+	userData := c.Locals("user").(db.User)
 
 	var req CreateAssetRequest
-	if err = c.BodyParser(&req); err != nil {
+	if err := c.BodyParser(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
@@ -92,4 +78,40 @@ func (server *Server) CreateAsset(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Create asset successfully."})
+}
+
+type UpdateAssetRequest struct {
+	Price  int64  `json:"price" validate:"required,min=0"`
+	Detail string `json:"detail" validate:"required"`
+}
+
+func (server *Server) UpdateAsset(c *fiber.Ctx) error {
+	assetId := c.Locals("asset_id").(int)
+
+	var req UpdateAssetRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(errorResponse(err))
+	}
+
+	arg := db.UpdateAssetParams{
+		ID:     int64(assetId),
+		Price:  req.Price,
+		Detail: req.Detail,
+	}
+	err := server.store.UpdateAsset(c.Context(), arg)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(errorResponse(err))
+	}
+
+	return okResponse(c, "update asset successfully.")
+}
+
+func (server *Server) DeleteAsset(c *fiber.Ctx) error{
+	assetId := c.Locals("asset_id").(int)
+	err := server.store.DeleteAsset(c.Context(), int64(assetId))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(errorResponse(err))
+	}
+
+	return okResponse(c, "delete asset successfully.")
 }
