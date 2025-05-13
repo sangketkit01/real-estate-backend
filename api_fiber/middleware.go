@@ -34,7 +34,7 @@ func (server *Server) AssetMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		assetId, err := strconv.Atoi(c.Params("asset_id"))
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 		}
 
 		asset, err := server.store.GetAssetById(c.Context(), int64(assetId))
