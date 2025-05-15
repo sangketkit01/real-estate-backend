@@ -59,6 +59,8 @@ func (server *Server) setUpRoute() error {
 			})
 		},
 	})
+
+	router.Static("/static", "../uploads")
 	
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     "http://localhost:3000",
@@ -78,24 +80,34 @@ func (server *Server) setUpRoute() error {
 }
 
 func (server *Server) setupPublicRoutes(router *fiber.App) {
-	router.Get("/", server.HomePage)
+	router.Get("/", server.GetAllAssets)
 	router.Post("/create-user", server.CreateUser)
 	router.Post("/login-user", server.LoginUser)
+
+	router.Get("/asset:id", server.GetAssetById)
+	router.Get("/:username", server.GetAssetsByUsername)
 }
 
 func (server *Server) setupProtectedRoutes(router *fiber.App) {
 	authGroup := router.Group("/", server.AuthMiddleware())
 	authGroup.Post("/create-asset", server.CreateAsset)
+	authGroup.Get("/logout", server.Logout)
+
+	authGroup.Post("/update-profile", server.UpdateUser)
+	authGroup.Post("/update-password", server.UpdateUserPassword)
 
 	assetGroup := authGroup.Group("/asset", server.AssetMiddleware())
+	assetGroup.Get("/my-asset", server.AllMyAssets)
+	assetGroup.Get("/my-asset/:asset_id", server.EditAsset)
+
+
 	assetGroup.Put("/:asset_id", server.UpdateAsset)
 	assetGroup.Delete("/:asset_id",server.DeleteAsset)
 
 	assetGroup.Post("/:asset_id/add-contact", server.AddNewContact)
-	assetGroup.Post("/:asset_id/add-image",server.AddNewImage)
-
 	assetGroup.Put("/:asset_id/:contact_id", server.UpdateContact)
 	assetGroup.Delete("/:asset_id/:contact_id", server.DeleteContact)
 
+	assetGroup.Post("/:asset_id/add-image",server.AddNewImage)
 	assetGroup.Delete("/:asset_id/:image_id", server.DeleteImage)
 }

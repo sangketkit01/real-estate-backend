@@ -38,12 +38,8 @@ func (server *Server) LoginUser(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	if err = util.CheckPassword(user.Password, req.Password); err != nil {
-		if err == bcrypt.ErrMismatchedHashAndPassword {
-			return fiber.NewError(fiber.StatusUnauthorized, "invalid credentials")
-		}
-
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	if err := util.CheckPassword(user.Password, req.Password); err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "invalid credentials")
 	}
 
 	token, _, err := server.tokenMaker.CreateToken(user.Username, server.config.TokenDuration)
@@ -62,6 +58,22 @@ func (server *Server) LoginUser(ctx *fiber.Ctx) error {
 		SameSite: "lax",
 	})
 	return ctx.JSON(fiber.Map{"message": "Login successfully"})
+}
+
+func (server *Server) Logout(c *fiber.Ctx) error{
+	c.Cookie(&fiber.Cookie{
+		Name:     "token",
+		Value:    "",
+		Path:     "/",
+		Domain:   "localhost",
+		Expires:  time.Now().Add(-1 * time.Hour),
+		HTTPOnly: true,
+		SameSite: "lax",
+		Secure:   server.isSecure, 
+	})
+	
+	c.ClearCookie("token")
+	return okResponse(c, "logout successfully.")
 }
 
 type CreateUserRequst struct {
