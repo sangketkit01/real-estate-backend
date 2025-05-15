@@ -21,6 +21,83 @@ func (q *Queries) DeleteAsset(ctx context.Context, id int64) error {
 	return err
 }
 
+const getAllAssets = `-- name: GetAllAssets :many
+SELECT 
+  a.id,
+  a.owner,
+  a.price,
+  a.detail,
+  a.status,
+  a.created_at,
+  a.updated_at,
+  ac.id AS contact_id,
+  ac.contact_name,
+  ac.contact_detail,
+  ai.id AS image_id,
+  ai.image_url
+FROM assets a
+LEFT JOIN asset_contacts ac ON ac.asset_id = a.id
+LEFT JOIN asset_images ai ON ai.asset_id = a.id
+ORDER BY a.id DESC
+LIMIT $1 OFFSET $2
+`
+
+type GetAllAssetsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+type GetAllAssetsRow struct {
+	ID            int64          `json:"id"`
+	Owner         string         `json:"owner"`
+	Price         int64          `json:"price"`
+	Detail        string         `json:"detail"`
+	Status        bool           `json:"status"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	ContactID     sql.NullInt64  `json:"contact_id"`
+	ContactName   sql.NullString `json:"contact_name"`
+	ContactDetail sql.NullString `json:"contact_detail"`
+	ImageID       sql.NullInt64  `json:"image_id"`
+	ImageUrl      sql.NullString `json:"image_url"`
+}
+
+func (q *Queries) GetAllAssets(ctx context.Context, arg GetAllAssetsParams) ([]GetAllAssetsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllAssets, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetAllAssetsRow{}
+	for rows.Next() {
+		var i GetAllAssetsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Owner,
+			&i.Price,
+			&i.Detail,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ContactID,
+			&i.ContactName,
+			&i.ContactDetail,
+			&i.ImageID,
+			&i.ImageUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAssetById = `-- name: GetAssetById :one
 SELECT 
   a.id,
@@ -76,6 +153,29 @@ func (q *Queries) GetAssetById(ctx context.Context, id int64) (GetAssetByIdRow, 
 	return i, err
 }
 
+const getAssetCount = `-- name: GetAssetCount :one
+SELECT count(id) FROM assets
+`
+
+func (q *Queries) GetAssetCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getAssetCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getAssetCountByUsername = `-- name: GetAssetCountByUsername :one
+SELECT count(id) FROM assets
+WHERE owner = $1
+`
+
+func (q *Queries) GetAssetCountByUsername(ctx context.Context, owner string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getAssetCountByUsername, owner)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getAssetsByUsername = `-- name: GetAssetsByUsername :many
 SELECT 
   a.id,
@@ -94,7 +194,15 @@ FROM assets a
 LEFT JOIN asset_contacts ac ON ac.asset_id = a.id
 LEFT JOIN asset_images ai ON ai.asset_id = a.id
 WHERE a.owner = $1
+ORDER BY a.id DESC
+LIMIT $2 OFFSET $3
 `
+
+type GetAssetsByUsernameParams struct {
+	Owner  string `json:"owner"`
+	Limit  int32  `json:"limit"`
+	Offset int32  `json:"offset"`
+}
 
 type GetAssetsByUsernameRow struct {
 	ID            int64          `json:"id"`
@@ -111,8 +219,8 @@ type GetAssetsByUsernameRow struct {
 	ImageUrl      sql.NullString `json:"image_url"`
 }
 
-func (q *Queries) GetAssetsByUsername(ctx context.Context, owner string) ([]GetAssetsByUsernameRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAssetsByUsername, owner)
+func (q *Queries) GetAssetsByUsername(ctx context.Context, arg GetAssetsByUsernameParams) ([]GetAssetsByUsernameRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAssetsByUsername, arg.Owner, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

@@ -12,3 +12,17 @@ WHERE username = $1;
 -- name: LoginUser :one
 SELECT username, password FROM users
 WHERE username = $1;
+
+-- name: UpdateUser :exec
+UPDATE users
+SET name = $1 , email = $2 , phone = $3 , profile_url = coalesce($4, profile_url)
+WHERE  username = $5;
+
+-- name: GetUserPassword :one
+SELECT password FROM users
+WHERE username = $1;
+
+-- name: UpdateUserPassword :exec
+UPDATE users 
+SET password = $1
+WHERE username = $2;

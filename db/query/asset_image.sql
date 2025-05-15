@@ -8,3 +8,8 @@ RETURNING *;
 -- name: DeleteImage :exec
 DELETE FROM asset_images
 WHERE id = $1;
+
+-- name: GetImageById :one
+SELECT * FROM asset_images
+WHERE id = $1;
+

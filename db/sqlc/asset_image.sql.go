@@ -19,6 +19,18 @@ func (q *Queries) DeleteImage(ctx context.Context, id int64) error {
 	return err
 }
 
+const getImageById = `-- name: GetImageById :one
+SELECT id, asset_id, image_url FROM asset_images
+WHERE id = $1
+`
+
+func (q *Queries) GetImageById(ctx context.Context, id int64) (AssetImage, error) {
+	row := q.db.QueryRowContext(ctx, getImageById, id)
+	var i AssetImage
+	err := row.Scan(&i.ID, &i.AssetID, &i.ImageUrl)
+	return i, err
+}
+
 const insertAssetImage = `-- name: InsertAssetImage :one
 INSERT INTO asset_images 
     (asset_id, image_url)

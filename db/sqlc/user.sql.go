@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -68,6 +69,18 @@ func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
 	return i, err
 }
 
+const getUserPassword = `-- name: GetUserPassword :one
+SELECT password FROM users
+WHERE username = $1
+`
+
+func (q *Queries) GetUserPassword(ctx context.Context, username string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getUserPassword, username)
+	var password string
+	err := row.Scan(&password)
+	return password, err
+}
+
 const loginUser = `-- name: LoginUser :one
 SELECT username, password FROM users
 WHERE username = $1
@@ -83,4 +96,45 @@ func (q *Queries) LoginUser(ctx context.Context, username string) (LoginUserRow,
 	var i LoginUserRow
 	err := row.Scan(&i.Username, &i.Password)
 	return i, err
+}
+
+const updateUser = `-- name: UpdateUser :exec
+UPDATE users
+SET name = $1 , email = $2 , phone = $3 , profile_url = coalesce($4, profile_url)
+WHERE  username = $5
+`
+
+type UpdateUserParams struct {
+	Name       string         `json:"name"`
+	Email      string         `json:"email"`
+	Phone      string         `json:"phone"`
+	ProfileUrl sql.NullString `json:"profile_url"`
+	Username   string         `json:"username"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
+	_, err := q.db.ExecContext(ctx, updateUser,
+		arg.Name,
+		arg.Email,
+		arg.Phone,
+		arg.ProfileUrl,
+		arg.Username,
+	)
+	return err
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE users 
+SET password = $1
+WHERE username = $2
+`
+
+type UpdateUserPasswordParams struct {
+	Password string `json:"password"`
+	Username string `json:"username"`
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.Password, arg.Username)
+	return err
 }

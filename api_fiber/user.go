@@ -2,8 +2,11 @@ package apifiber
 
 import (
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -120,4 +123,107 @@ func (server *Server) CreateUser(ctx *fiber.Ctx) error {
 	})
 
 	return ctx.JSON(fiber.Map{"message": "Create account successfully"})
+}
+
+type UpdateUserRequest struct {
+	Name  string `json:"name" validate:"required"`
+	Email string `json:"email" validate:"omitempty,email"`
+	Phone string `json:"phone" validate:"omitempty,min=10,max=10"`
+}
+
+func (server *Server) UpdateUser(c *fiber.Ctx) error {
+	user := c.Locals("user").(db.User)
+
+	data := c.FormValue("data")
+	var req UpdateUserRequest
+	if err := json.Unmarshal([]byte(data), &req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	var imageUrl string
+	var valid bool
+
+	form, err := c.MultipartForm()
+	if err == nil {
+		files := form.File["images"]
+		for _, file := range files {
+			if user.ProfileUrl.Valid {
+				oldPath := fmt.Sprintf("../%s", user.ProfileUrl.String)
+				_ = os.Remove(oldPath)
+			}
+
+			newProfile := fmt.Sprintf("%d_%s", time.Now().UnixNano(), file.Filename)
+			dst := fmt.Sprintf("../uploads/%s", newProfile)
+			if err := c.SaveFile(file, dst); err == nil {
+				imageUrl = "uploads/" + newProfile
+				valid = true
+			}
+		}
+	}
+
+	arg := db.UpdateUserParams{
+		Name:       req.Name,
+		Email:      req.Email,
+		Phone:      req.Phone,
+		ProfileUrl: sql.NullString{String: imageUrl, Valid: valid},
+		Username:   user.Username,
+	}
+
+	if err := server.store.UpdateUser(c.Context(), arg); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "update failed.")
+	}
+
+	return okResponse(c, "update profile successfully.")
+}
+
+type UpdatePasswordRequest struct {
+	CurrentPassword string `json:"current_password" validate:"required"`
+	NewPassword     string `json:"new_password" validate:"required,min=8"`
+	ConfirmPassword string `json:"confirm_password" validate:"required,eqField=NewPassword"`
+}
+
+func (server *Server) UpdateUserPassword(c *fiber.Ctx) error {
+	user := c.Locals("user").(db.User)
+
+	var req UpdatePasswordRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	validator := validator.New()
+	if err := validator.Struct(req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	hashedPassword, err := server.store.GetUserPassword(c.Context(), user.Username)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fiber.NewError(fiber.StatusNotFound, "no data found, why are you here ?")
+		}
+
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	err = util.CheckPassword(hashedPassword, req.CurrentPassword)
+	if err == bcrypt.ErrMismatchedHashAndPassword {
+		return fiber.NewError(fiber.StatusForbidden, "wrong current password.")
+	} else if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	newHashedPassword, err := util.HashedPassword(req.NewPassword)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to hash password.")
+	}
+
+	arg := db.UpdateUserPasswordParams{
+		Password: newHashedPassword,
+		Username: user.Username,
+	}
+
+	if err = server.store.UpdateUserPassword(c.Context(), arg); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "update password failed.")
+	}
+
+	return okResponse(c, "update password successfully.")
 }

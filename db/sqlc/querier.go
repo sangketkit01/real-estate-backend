@@ -12,10 +12,15 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteAsset(ctx context.Context, id int64) error
 	DeleteImage(ctx context.Context, id int64) error
+	GetAllAssets(ctx context.Context, arg GetAllAssetsParams) ([]GetAllAssetsRow, error)
 	GetAssetById(ctx context.Context, id int64) (GetAssetByIdRow, error)
-	GetAssetsByUsername(ctx context.Context, owner string) ([]GetAssetsByUsernameRow, error)
+	GetAssetCount(ctx context.Context) (int64, error)
+	GetAssetCountByUsername(ctx context.Context, owner string) (int64, error)
+	GetAssetsByUsername(ctx context.Context, arg GetAssetsByUsernameParams) ([]GetAssetsByUsernameRow, error)
 	GetContact(ctx context.Context, id int64) (AssetContact, error)
+	GetImageById(ctx context.Context, id int64) (AssetImage, error)
 	GetUser(ctx context.Context, username string) (User, error)
+	GetUserPassword(ctx context.Context, username string) (string, error)
 	InsertAsset(ctx context.Context, arg InsertAssetParams) (Asset, error)
 	InsertAssetContact(ctx context.Context, arg InsertAssetContactParams) (AssetContact, error)
 	InsertAssetImage(ctx context.Context, arg InsertAssetImageParams) (AssetImage, error)
@@ -23,6 +28,8 @@ type Querier interface {
 	RemoveContact(ctx context.Context, id int64) error
 	UpdateAsset(ctx context.Context, arg UpdateAssetParams) error
 	UpdateContact(ctx context.Context, arg UpdateContactParams) error
+	UpdateUser(ctx context.Context, arg UpdateUserParams) error
+	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 }
 
 var _ Querier = (*Queries)(nil)
