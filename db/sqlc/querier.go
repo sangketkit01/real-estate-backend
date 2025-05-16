@@ -13,7 +13,9 @@ type Querier interface {
 	DeleteAsset(ctx context.Context, id int64) error
 	DeleteImage(ctx context.Context, id int64) error
 	GetAllAssets(ctx context.Context, arg GetAllAssetsParams) ([]GetAllAssetsRow, error)
+	GetAllUsers(ctx context.Context, arg GetAllUsersParams) ([]User, error)
 	GetAssetById(ctx context.Context, id int64) (GetAssetByIdRow, error)
+	GetAssetContacts(ctx context.Context, assetID int64) ([]AssetContact, error)
 	GetAssetCount(ctx context.Context) (int64, error)
 	GetAssetCountByUsername(ctx context.Context, owner string) (int64, error)
 	GetAssetsByUsername(ctx context.Context, arg GetAssetsByUsernameParams) ([]GetAssetsByUsernameRow, error)

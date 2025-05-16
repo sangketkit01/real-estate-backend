@@ -1,4 +1,4 @@
-package apifiber
+package api
 
 import (
 	"database/sql"

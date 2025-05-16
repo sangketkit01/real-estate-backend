@@ -5,7 +5,7 @@ import (
 	"log"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	apifiber "github.com/sangketkit01/real-estate-backend/api_fiber"
+	"github.com/sangketkit01/real-estate-backend/api"
 	db "github.com/sangketkit01/real-estate-backend/db/sqlc"
 	"github.com/sangketkit01/real-estate-backend/util"
 )
@@ -29,7 +29,7 @@ func main() {
 	}
 	store := db.NewStore(conn)
 
-	server, err := apifiber.NewServer(store, config)
+	server, err := api.NewServer(store, config)
 	if err != nil {
 		log.Fatalln(err)
 	}

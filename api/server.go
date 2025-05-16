@@ -1,8 +1,9 @@
-package apifiber
+package api
 
 import (
 	"fmt"
 
+	"github.com/bytedance/sonic"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	db "github.com/sangketkit01/real-estate-backend/db/sqlc"
@@ -45,23 +46,13 @@ func (server *Server) Start() error {
 
 func (server *Server) setUpRoute() error {
 	router := fiber.New(fiber.Config{
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			code := fiber.StatusInternalServerError
-			msg := "Internal Server Error"
-	
-			if e, ok := err.(*fiber.Error); ok {
-				code = e.Code
-				msg = e.Message
-			}
-	
-			return c.Status(code).JSON(fiber.Map{
-				"error": msg,
-			})
-		},
+		ErrorHandler: errorHandler,
+		JSONEncoder: sonic.Marshal,
+		JSONDecoder: sonic.Unmarshal,
 	})
 
 	router.Static("/static", "../uploads")
-	
+
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     "http://localhost:3000",
 		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
@@ -73,6 +64,7 @@ func (server *Server) setUpRoute() error {
 
 	server.setupPublicRoutes(router)
 	server.setupProtectedRoutes(router)
+	server.setupAdminRoute(router)
 
 	server.router = router
 
@@ -100,14 +92,32 @@ func (server *Server) setupProtectedRoutes(router *fiber.App) {
 	assetGroup.Get("/my-asset", server.AllMyAssets)
 	assetGroup.Get("/my-asset/:asset_id", server.EditAsset)
 
-
 	assetGroup.Put("/:asset_id", server.UpdateAsset)
-	assetGroup.Delete("/:asset_id",server.DeleteAsset)
+	assetGroup.Delete("/:asset_id", server.DeleteAsset)
 
 	assetGroup.Post("/:asset_id/add-contact", server.AddNewContact)
 	assetGroup.Put("/:asset_id/:contact_id", server.UpdateContact)
 	assetGroup.Delete("/:asset_id/:contact_id", server.DeleteContact)
 
-	assetGroup.Post("/:asset_id/add-image",server.AddNewImage)
+	assetGroup.Post("/:asset_id/add-image", server.AddNewImage)
 	assetGroup.Delete("/:asset_id/:image_id", server.DeleteImage)
+}
+
+func (server *Server) setupAdminRoute(router *fiber.App){
+	adminGroup := router.Group("/admin", server.AuthMiddleware(), server.AdminMiddleware())
+	adminGroup.Get("/users", server.GetAllUsers)
+}
+
+func errorHandler(c *fiber.Ctx, err error) error {
+	code := fiber.StatusInternalServerError
+	msg := "Internal Server Error"
+
+	if e, ok := err.(*fiber.Error); ok {
+		code = e.Code
+		msg = e.Message
+	}
+
+	return c.Status(code).JSON(fiber.Map{
+		"error": msg,
+	})
 }

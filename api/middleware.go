@@ -1,4 +1,4 @@
-package apifiber
+package api
 
 import (
 	"database/sql"
@@ -7,6 +7,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	db "github.com/sangketkit01/real-estate-backend/db/sqlc"
 )
+
+
 
 func (server *Server) AuthMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
@@ -60,3 +62,20 @@ func (server *Server) AssetMiddleware() fiber.Handler {
 		return c.Next()
 	}
 }
+
+func (server *Server) AdminMiddleware() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		userData := c.Locals("user")
+		user, ok := userData.(db.User)
+		if !ok {
+			return fiber.NewError(fiber.StatusInternalServerError, "user context error")
+		}
+
+		if user.Roles != "admin" {
+			return fiber.NewError(fiber.StatusUnauthorized, "not authorized")
+		}
+
+		return c.Next()
+	}
+}
+

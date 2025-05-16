@@ -1,21 +1,31 @@
-package apifiber
+package api
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/lib/pq"
 	db "github.com/sangketkit01/real-estate-backend/db/sqlc"
 	"github.com/sangketkit01/real-estate-backend/util"
-	"golang.org/x/crypto/bcrypt"
 )
+
+func (server *Server) GetUserData(c *fiber.Ctx) error {
+	u := c.Locals("user")
+	user, ok := u.(db.User)
+
+	if !ok {
+		return fiber.NewError(fiber.StatusForbidden, "invalid user type")
+	}
+
+	return c.Status(fiber.StatusOK).JSON(user)
+}
 
 type LoginUserRequest struct {
 	Username string `json:"username" validate:"required"`
@@ -27,6 +37,11 @@ func (server *Server) LoginUser(ctx *fiber.Ctx) error {
 	if err := ctx.BodyParser(&req); err != nil {
 		log.Println(err)
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request")
+	}
+
+	validator := validator.New()
+	if err := validator.Struct(req) ; err != nil{
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
 	user, err := server.store.LoginUser(ctx.Context(), req.Username)
@@ -57,10 +72,10 @@ func (server *Server) LoginUser(ctx *fiber.Ctx) error {
 		HTTPOnly: true,
 		SameSite: "lax",
 	})
-	return ctx.JSON(fiber.Map{"message": "Login successfully"})
+	return ctx.Status(401).JSON(fiber.Map{"message": "Login successfully"})
 }
 
-func (server *Server) Logout(c *fiber.Ctx) error{
+func (server *Server) Logout(c *fiber.Ctx) error {
 	c.Cookie(&fiber.Cookie{
 		Name:     "token",
 		Value:    "",
@@ -69,9 +84,9 @@ func (server *Server) Logout(c *fiber.Ctx) error{
 		Expires:  time.Now().Add(-1 * time.Hour),
 		HTTPOnly: true,
 		SameSite: "lax",
-		Secure:   server.isSecure, 
+		Secure:   server.isSecure,
 	})
-	
+
 	c.ClearCookie("token")
 	return okResponse(c, "logout successfully.")
 }
@@ -91,6 +106,11 @@ func (server *Server) CreateUser(ctx *fiber.Ctx) error {
 		for _, fieldErr := range validationErrors {
 			log.Println("Field:", fieldErr.Field(), "Error:", fieldErr.Tag())
 		}
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	validator := validator.New()
+	if err := validator.Struct(req) ; err != nil{
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
@@ -134,7 +154,7 @@ func (server *Server) CreateUser(ctx *fiber.Ctx) error {
 		SameSite: "lax",
 	})
 
-	return ctx.JSON(fiber.Map{"message": "Create account successfully"})
+	return ctx.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "Create account successfully"})
 }
 
 type UpdateUserRequest struct {
@@ -148,7 +168,12 @@ func (server *Server) UpdateUser(c *fiber.Ctx) error {
 
 	data := c.FormValue("data")
 	var req UpdateUserRequest
-	if err := json.Unmarshal([]byte(data), &req); err != nil {
+	if err := sonic.Unmarshal([]byte(data), &req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	validator := validator.New()
+	if err := validator.Struct(req) ; err != nil{
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
@@ -216,11 +241,8 @@ func (server *Server) UpdateUserPassword(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	err = util.CheckPassword(hashedPassword, req.CurrentPassword)
-	if err == bcrypt.ErrMismatchedHashAndPassword {
-		return fiber.NewError(fiber.StatusForbidden, "wrong current password.")
-	} else if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	if err = util.CheckPassword(hashedPassword, req.CurrentPassword); err != nil {
+		return fiber.NewError(fiber.StatusForbidden, "wrong password.")
 	}
 
 	newHashedPassword, err := util.HashedPassword(req.NewPassword)

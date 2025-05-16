@@ -1,4 +1,4 @@
-package apifiber
+package api
 
 import (
 	"errors"
@@ -21,3 +21,7 @@ func newErrorResponse(message string) fiber.Map {
 func okResponse(c *fiber.Ctx, message string) error{
 	return c.Status(fiber.StatusOK).JSON(messageResponse(message))
 } 
+
+func okAndJsonResponse(c *fiber.Ctx, data any) error{
+	return c.Status(fiber.StatusOK).JSON(data)
+}

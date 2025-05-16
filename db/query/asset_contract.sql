@@ -20,3 +20,7 @@ WHERE id = $3;
 -- name: GetContact :one
 SELECT * FROM asset_contacts 
 WHERE id = $1;
+
+-- name: GetAssetContacts :many
+SELECT * FROM asset_contacts
+WHERE asset_id = $1;

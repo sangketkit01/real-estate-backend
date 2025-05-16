@@ -9,6 +9,41 @@ import (
 	"context"
 )
 
+const getAssetContacts = `-- name: GetAssetContacts :many
+SELECT id, asset_id, contact_name, contact_detail, created_at, updated_at FROM asset_contacts
+WHERE asset_id = $1
+`
+
+func (q *Queries) GetAssetContacts(ctx context.Context, assetID int64) ([]AssetContact, error) {
+	rows, err := q.db.QueryContext(ctx, getAssetContacts, assetID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AssetContact{}
+	for rows.Next() {
+		var i AssetContact
+		if err := rows.Scan(
+			&i.ID,
+			&i.AssetID,
+			&i.ContactName,
+			&i.ContactDetail,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getContact = `-- name: GetContact :one
 SELECT id, asset_id, contact_name, contact_detail, created_at, updated_at FROM asset_contacts 
 WHERE id = $1

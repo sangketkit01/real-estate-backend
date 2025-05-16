@@ -1,21 +1,21 @@
-package apifiber
+package api
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
 	db "github.com/sangketkit01/real-estate-backend/db/sqlc"
 )
 
 func (server *Server) GetAllAssets(c *fiber.Ctx) error {
-	page, err := strconv.Atoi(c.Query("page","1"))
-	if err != nil || page < 1{
+	page, err := strconv.Atoi(c.Query("page", "1"))
+	if err != nil || page < 1 {
 		page = 1
 	}
 
@@ -23,28 +23,29 @@ func (server *Server) GetAllAssets(c *fiber.Ctx) error {
 	offset := (page - 1) * limit
 
 	arg := db.GetAllAssetsParams{
-		Limit: int32(limit),
+		Limit:  int32(limit),
 		Offset: int32(offset),
 	}
 
 	assets, err := server.store.GetAllAssets(c.Context(), arg)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return fiber.NewError(fiber.StatusNotFound, "no asset found.")
-		}
 		return fiber.NewError(fiber.StatusInternalServerError, "cannot get assets")
 	}
 
+	if len(assets) == 0{
+		return fiber.NewError(fiber.StatusNoContent, "no asset found.")
+	}
+
 	total, err := server.store.GetAssetCount(c.Context())
-	if err !=  nil{
+	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "cannot count asset")
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"assets" : assets,
-		"page" : page,
-		"limit" : limit,
-		"total" : total,
+		"assets": assets,
+		"page":   page,
+		"limit":  limit,
+		"total":  total,
 	})
 }
 
@@ -73,8 +74,8 @@ func (server *Server) GetAssetsByUsername(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "username is not provided.")
 	}
 
-	page, err := strconv.Atoi(c.Query("page","1"))
-	if err != nil || page < 1{
+	page, err := strconv.Atoi(c.Query("page", "1"))
+	if err != nil || page < 1 {
 		page = 1
 	}
 
@@ -82,38 +83,38 @@ func (server *Server) GetAssetsByUsername(c *fiber.Ctx) error {
 	offset := (page - 1) * limit
 
 	arg := db.GetAssetsByUsernameParams{
-		Limit: int32(limit),
+		Limit:  int32(limit),
 		Offset: int32(offset),
-		Owner: username,
+		Owner:  username,
 	}
 
 	assets, err := server.store.GetAssetsByUsername(c.Context(), arg)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return fiber.NewError(fiber.StatusNotFound, "no asset found for this person.")
-		}
-
 		return fiber.NewError(fiber.StatusInternalServerError, "cannot get assets.")
 	}
 
+	if len(assets) == 0{
+		return fiber.NewError(fiber.StatusNoContent, "no asset found.")
+	}
+
 	total, err := server.store.GetAssetCountByUsername(c.Context(), username)
-	if err != nil{
+	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "cannot count assets.")
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"assets" : assets,
-		"page" : page,
-		"limit" : limit,
-		"total" : total,
+		"assets": assets,
+		"page":   page,
+		"limit":  limit,
+		"total":  total,
 	})
 }
 
 func (server *Server) AllMyAssets(c *fiber.Ctx) error {
 	user := c.Locals("user").(db.User)
 
-	page, err := strconv.Atoi(c.Query("page","1"))
-	if err != nil || page < 1{
+	page, err := strconv.Atoi(c.Query("page", "1"))
+	if err != nil || page < 1 {
 		page = 1
 	}
 
@@ -121,30 +122,30 @@ func (server *Server) AllMyAssets(c *fiber.Ctx) error {
 	offset := (page - 1) * limit
 
 	arg := db.GetAssetsByUsernameParams{
-		Limit: int32(limit),
+		Limit:  int32(limit),
 		Offset: int32(offset),
-		Owner: user.Username,
+		Owner:  user.Username,
 	}
 
 	assets, err := server.store.GetAssetsByUsername(c.Context(), arg)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return fiber.NewError(fiber.StatusNotFound, "you have no asset.")
-		}
-
 		return fiber.NewError(fiber.StatusInternalServerError, "cannot get assets.")
 	}
 
+	if len(assets) == 0{
+		return fiber.NewError(fiber.StatusNoContent, "no asset found.")
+	}
+
 	total, err := server.store.GetAssetCountByUsername(c.Context(), user.Username)
-	if err != nil{
+	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "cannot count assets.")
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"assets" : assets,
-		"page" : page,
-		"limit" : limit,
-		"total" : total,
+		"assets": assets,
+		"page":   page,
+		"limit":  limit,
+		"total":  total,
 	})
 }
 
@@ -189,7 +190,7 @@ func (server *Server) CreateAsset(c *fiber.Ctx) error {
 
 	data := c.FormValue("data")
 	var req CreateAssetRequest
-	if err := json.Unmarshal([]byte(data), &req); err != nil {
+	if err := sonic.Unmarshal([]byte(data), &req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid JSON data.")
 	}
 
@@ -239,7 +240,7 @@ func (server *Server) CreateAsset(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Create asset successfully."})
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "Create asset successfully."})
 }
 
 type UpdateAssetRequest struct {
@@ -253,6 +254,11 @@ func (server *Server) UpdateAsset(c *fiber.Ctx) error {
 	var req UpdateAssetRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(errorResponse(err))
+	}
+
+	validator := validator.New()
+	if err := validator.Struct(req) ; err != nil{
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
 	arg := db.UpdateAssetParams{
