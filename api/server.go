@@ -51,7 +51,7 @@ func (server *Server) setUpRoute() error {
 		JSONDecoder: sonic.Unmarshal,
 	})
 
-	router.Static("/static", "../uploads")
+	router.Static("/static", "/uploads")
 
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     "http://localhost:3000",
