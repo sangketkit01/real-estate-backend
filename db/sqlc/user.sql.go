@@ -102,14 +102,15 @@ func (q *Queries) LoginUser(ctx context.Context, username string) (LoginUserRow,
 
 const updateUser = `-- name: UpdateUser :exec
 UPDATE users
-SET name = $1 , email = $2 , phone = $3 , profile_url = coalesce($4, profile_url)
+SET name = coalesce($1, name) , email = coalesce($2, email) , phone = coalesce($3, phone) , 
+    profile_url = coalesce($4, profile_url)
 WHERE  username = $5
 `
 
 type UpdateUserParams struct {
-	Name       string         `json:"name"`
-	Email      string         `json:"email"`
-	Phone      string         `json:"phone"`
+	Name       sql.NullString `json:"name"`
+	Email      sql.NullString `json:"email"`
+	Phone      sql.NullString `json:"phone"`
 	ProfileUrl sql.NullString `json:"profile_url"`
 	Username   string         `json:"username"`
 }

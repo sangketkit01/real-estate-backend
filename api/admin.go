@@ -28,7 +28,7 @@ func (server *Server) GetAllUsers(c *fiber.Ctx) error {
 	}
 
 	if len(users) == 0 {
-		return fiber.NewError(fiber.StatusNoContent, "no users found")
+		return fiber.NewError(fiber.StatusNotFound, "no users found")
 	}
 
 	return c.JSON(users)

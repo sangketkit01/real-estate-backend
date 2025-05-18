@@ -34,17 +34,19 @@ SELECT
   a.status,
   a.created_at,
   a.updated_at,
-  ac.id AS contact_id,
-  ac.contact_name,
-  ac.contact_detail,
-  ai.id AS image_id,
-  ai.image_url
+  MIN(ac.id) AS contact_id,
+  MIN(ac.contact_name) AS contact_name,
+  MIN(ac.contact_detail) AS contact_detail,
+  MIN(ai.id) AS image_id,
+  MIN(ai.image_url) AS image_url
 FROM assets a
 LEFT JOIN asset_contacts ac ON ac.asset_id = a.id
 LEFT JOIN asset_images ai ON ai.asset_id = a.id
 WHERE a.owner = $1
+GROUP BY a.id
 ORDER BY a.id DESC
 LIMIT $2 OFFSET $3;
+
 
 
 -- name: GetAllAssets :many

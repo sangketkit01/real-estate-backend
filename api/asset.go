@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -33,7 +34,8 @@ func (server *Server) GetAllAssets(c *fiber.Ctx) error {
 	}
 
 	if len(assets) == 0{
-		return fiber.NewError(fiber.StatusNoContent, "no asset found.")
+		log.Println("here")
+		return fiber.NewError(fiber.StatusNotFound, "no asset found.")
 	}
 
 	total, err := server.store.GetAssetCount(c.Context())
@@ -93,8 +95,8 @@ func (server *Server) GetAssetsByUsername(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "cannot get assets.")
 	}
 
-	if len(assets) == 0{
-		return fiber.NewError(fiber.StatusNoContent, "no asset found.")
+	if len(assets) == 0 {
+		return fiber.NewError(fiber.StatusNotFound, "no asset found.")
 	}
 
 	total, err := server.store.GetAssetCountByUsername(c.Context(), username)
@@ -133,7 +135,7 @@ func (server *Server) AllMyAssets(c *fiber.Ctx) error {
 	}
 
 	if len(assets) == 0{
-		return fiber.NewError(fiber.StatusNoContent, "no asset found.")
+		return fiber.NewError(fiber.StatusNotFound, "no asset found.")
 	}
 
 	total, err := server.store.GetAssetCountByUsername(c.Context(), user.Username)
@@ -226,12 +228,13 @@ func (server *Server) CreateAsset(c *fiber.Ctx) error {
 	}
 	files := form.File["images"]
 
+	fmt.Println(files)
 	for _, file := range files {
 		uniqueName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), file.Filename)
-		dst := fmt.Sprintf("../uploads/%s", uniqueName)
+		dst := fmt.Sprintf("./uploads/%s", uniqueName)
 
 		if err := c.SaveFile(file, dst); err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, "upload failed")
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
 
 		server.store.InsertAssetImage(c.Context(), db.InsertAssetImageParams{

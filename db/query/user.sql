@@ -15,8 +15,9 @@ WHERE username = $1;
 
 -- name: UpdateUser :exec
 UPDATE users
-SET name = $1 , email = $2 , phone = $3 , profile_url = coalesce($4, profile_url)
-WHERE  username = $5;
+SET name = coalesce(sqlc.narg(name), name) , email = coalesce(sqlc.narg(email), email) , phone = coalesce(sqlc.narg(phone), phone) , 
+    profile_url = coalesce(sqlc.narg(profile_url), profile_url)
+WHERE  username = sqlc.arg(username);
 
 -- name: GetUserPassword :one
 SELECT password FROM users

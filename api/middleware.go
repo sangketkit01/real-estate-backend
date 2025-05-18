@@ -2,16 +2,16 @@ package api
 
 import (
 	"database/sql"
+	"log"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 	db "github.com/sangketkit01/real-estate-backend/db/sqlc"
 )
 
-
-
 func (server *Server) AuthMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		log.Println("middlware called")
 		tokenCookie := c.Cookies("token", "invalid token")
 		payload, err := server.tokenMaker.VerifyToken(tokenCookie)
 		if err != nil {
@@ -34,9 +34,15 @@ func (server *Server) AuthMiddleware() fiber.Handler {
 
 func (server *Server) AssetMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		assetId, err := strconv.Atoi(c.Params("asset_id", "no asset id"))
+		log.Println(c.AllParams(), c.Route(), c.Path())
+		assetIdParam := c.Params("asset_id")
+		if assetIdParam == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "asset_id is required"})
+		}
+
+		assetId, err := strconv.Atoi(assetIdParam)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid asset_id"})
 		}
 
 		asset, err := server.store.GetAssetById(c.Context(), int64(assetId))
@@ -65,6 +71,7 @@ func (server *Server) AssetMiddleware() fiber.Handler {
 
 func (server *Server) AdminMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		log.Println("middleware called")
 		userData := c.Locals("user")
 		user, ok := userData.(db.User)
 		if !ok {
@@ -78,4 +85,3 @@ func (server *Server) AdminMiddleware() fiber.Handler {
 		return c.Next()
 	}
 }
-

@@ -45,15 +45,15 @@ func (server *Server) Start() error {
 }
 
 func (server *Server) setUpRoute() error {
-	router := fiber.New(fiber.Config{
+	server.router = fiber.New(fiber.Config{
 		ErrorHandler: errorHandler,
-		JSONEncoder: sonic.Marshal,
-		JSONDecoder: sonic.Unmarshal,
+		JSONEncoder:  sonic.Marshal,
+		JSONDecoder:  sonic.Unmarshal,
 	})
 
-	router.Static("/static", "/uploads")
+	server.router.Static("/static", "/uploads")
 
-	router.Use(cors.New(cors.Config{
+	server.router.Use(cors.New(cors.Config{
 		AllowOrigins:     "http://localhost:3000",
 		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
 		AllowHeaders:     "Origin, Content-Type, Authorization",
@@ -62,11 +62,9 @@ func (server *Server) setUpRoute() error {
 		MaxAge:           12 * 60 * 60,
 	}))
 
-	server.setupPublicRoutes(router)
-	server.setupProtectedRoutes(router)
-	server.setupAdminRoute(router)
-
-	server.router = router
+	server.setupPublicRoutes(server.router)
+	server.setupProtectedRoutes(server.router)
+	server.setupAdminRoute(server.router)
 
 	return nil
 }
@@ -76,34 +74,37 @@ func (server *Server) setupPublicRoutes(router *fiber.App) {
 	router.Post("/create-user", server.CreateUser)
 	router.Post("/login-user", server.LoginUser)
 
-	router.Get("/asset:id", server.GetAssetById)
-	router.Get("/:username", server.GetAssetsByUsername)
+	router.Get("/watch/:asset_id", server.GetAssetById)
+	router.Get("/user/:username", server.GetAssetsByUsername)
 }
 
 func (server *Server) setupProtectedRoutes(router *fiber.App) {
-	authGroup := router.Group("/", server.AuthMiddleware())
+	authGroup := router.Group("", server.AuthMiddleware())
 	authGroup.Post("/create-asset", server.CreateAsset)
 	authGroup.Get("/logout", server.Logout)
 
+	authGroup.Get("/me", server.GetUserData)
 	authGroup.Post("/update-profile", server.UpdateUser)
 	authGroup.Post("/update-password", server.UpdateUserPassword)
 
-	assetGroup := authGroup.Group("/asset", server.AssetMiddleware())
-	assetGroup.Get("/my-asset", server.AllMyAssets)
-	assetGroup.Get("/my-asset/:asset_id", server.EditAsset)
+	authGroup.Get("/my-asset", server.AllMyAssets)
 
-	assetGroup.Put("/:asset_id", server.UpdateAsset)
-	assetGroup.Delete("/:asset_id", server.DeleteAsset)
+	assetGroup := authGroup.Group("/asset")
 
-	assetGroup.Post("/:asset_id/add-contact", server.AddNewContact)
-	assetGroup.Put("/:asset_id/:contact_id", server.UpdateContact)
-	assetGroup.Delete("/:asset_id/:contact_id", server.DeleteContact)
+	assetGroup.Get("/my-asset-detail/:asset_id", server.AssetMiddleware(), server.EditAsset)
 
-	assetGroup.Post("/:asset_id/add-image", server.AddNewImage)
-	assetGroup.Delete("/:asset_id/:image_id", server.DeleteImage)
+	assetGroup.Put("/:asset_id", server.AssetMiddleware(), server.UpdateAsset)
+	assetGroup.Delete("/:asset_id", server.AssetMiddleware(), server.DeleteAsset)
+
+	assetGroup.Post("/:asset_id/add-contact", server.AssetMiddleware(), server.AddNewContact)
+	assetGroup.Put("/:asset_id/:contact_id", server.AssetMiddleware(), server.UpdateContact)
+	assetGroup.Delete("/:asset_id/:contact_id", server.AssetMiddleware(), server.DeleteContact)
+
+	assetGroup.Post("/:asset_id/add-image", server.AssetMiddleware(), server.AddNewImage)
+	assetGroup.Delete("/:asset_id/:image_id", server.AssetMiddleware(), server.DeleteImage)
 }
 
-func (server *Server) setupAdminRoute(router *fiber.App){
+func (server *Server) setupAdminRoute(router *fiber.App) {
 	adminGroup := router.Group("/admin", server.AuthMiddleware(), server.AdminMiddleware())
 	adminGroup.Get("/users", server.GetAllUsers)
 }

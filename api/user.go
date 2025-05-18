@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/bytedance/sonic"
@@ -40,7 +41,7 @@ func (server *Server) LoginUser(ctx *fiber.Ctx) error {
 	}
 
 	validator := validator.New()
-	if err := validator.Struct(req) ; err != nil{
+	if err := validator.Struct(req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
@@ -110,7 +111,7 @@ func (server *Server) CreateUser(ctx *fiber.Ctx) error {
 	}
 
 	validator := validator.New()
-	if err := validator.Struct(req) ; err != nil{
+	if err := validator.Struct(req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
@@ -158,7 +159,7 @@ func (server *Server) CreateUser(ctx *fiber.Ctx) error {
 }
 
 type UpdateUserRequest struct {
-	Name  string `json:"name" validate:"required"`
+	Name  string `json:"name"`
 	Email string `json:"email" validate:"omitempty,email"`
 	Phone string `json:"phone" validate:"omitempty,min=10,max=10"`
 }
@@ -173,9 +174,13 @@ func (server *Server) UpdateUser(c *fiber.Ctx) error {
 	}
 
 	validator := validator.New()
-	if err := validator.Struct(req) ; err != nil{
+	if err := validator.Struct(req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
+
+	nameValid := strings.TrimSpace(req.Name) != ""
+	emailValid := strings.TrimSpace(req.Email) != ""
+	phoneValid := strings.TrimSpace(req.Phone) != ""
 
 	var imageUrl string
 	var valid bool
@@ -190,18 +195,20 @@ func (server *Server) UpdateUser(c *fiber.Ctx) error {
 			}
 
 			newProfile := fmt.Sprintf("%d_%s", time.Now().UnixNano(), file.Filename)
-			dst := fmt.Sprintf("../uploads/%s", newProfile)
+			dst := fmt.Sprintf("./uploads/%s", newProfile)
 			if err := c.SaveFile(file, dst); err == nil {
 				imageUrl = "uploads/" + newProfile
 				valid = true
+			}else{
+				log.Println("upload image failed.")
 			}
 		}
 	}
 
 	arg := db.UpdateUserParams{
-		Name:       req.Name,
-		Email:      req.Email,
-		Phone:      req.Phone,
+		Name:       sql.NullString{String: req.Name, Valid: nameValid},
+		Email:      sql.NullString{String: req.Email, Valid: emailValid},
+		Phone:      sql.NullString{String: req.Phone, Valid: phoneValid},
 		ProfileUrl: sql.NullString{String: imageUrl, Valid: valid},
 		Username:   user.Username,
 	}
@@ -216,7 +223,7 @@ func (server *Server) UpdateUser(c *fiber.Ctx) error {
 type UpdatePasswordRequest struct {
 	CurrentPassword string `json:"current_password" validate:"required"`
 	NewPassword     string `json:"new_password" validate:"required,min=8"`
-	ConfirmPassword string `json:"confirm_password" validate:"required,eqField=NewPassword"`
+	ConfirmPassword string `json:"confirm_password" validate:"required,eqfield=NewPassword"`
 }
 
 func (server *Server) UpdateUserPassword(c *fiber.Ctx) error {

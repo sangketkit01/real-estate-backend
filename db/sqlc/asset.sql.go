@@ -185,15 +185,16 @@ SELECT
   a.status,
   a.created_at,
   a.updated_at,
-  ac.id AS contact_id,
-  ac.contact_name,
-  ac.contact_detail,
-  ai.id AS image_id,
-  ai.image_url
+  MIN(ac.id) AS contact_id,
+  MIN(ac.contact_name) AS contact_name,
+  MIN(ac.contact_detail) AS contact_detail,
+  MIN(ai.id) AS image_id,
+  MIN(ai.image_url) AS image_url
 FROM assets a
 LEFT JOIN asset_contacts ac ON ac.asset_id = a.id
 LEFT JOIN asset_images ai ON ai.asset_id = a.id
 WHERE a.owner = $1
+GROUP BY a.id
 ORDER BY a.id DESC
 LIMIT $2 OFFSET $3
 `
@@ -205,18 +206,18 @@ type GetAssetsByUsernameParams struct {
 }
 
 type GetAssetsByUsernameRow struct {
-	ID            int64          `json:"id"`
-	Owner         string         `json:"owner"`
-	Price         int64          `json:"price"`
-	Detail        string         `json:"detail"`
-	Status        bool           `json:"status"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
-	ContactID     sql.NullInt64  `json:"contact_id"`
-	ContactName   sql.NullString `json:"contact_name"`
-	ContactDetail sql.NullString `json:"contact_detail"`
-	ImageID       sql.NullInt64  `json:"image_id"`
-	ImageUrl      sql.NullString `json:"image_url"`
+	ID            int64       `json:"id"`
+	Owner         string      `json:"owner"`
+	Price         int64       `json:"price"`
+	Detail        string      `json:"detail"`
+	Status        bool        `json:"status"`
+	CreatedAt     time.Time   `json:"created_at"`
+	UpdatedAt     time.Time   `json:"updated_at"`
+	ContactID     interface{} `json:"contact_id"`
+	ContactName   interface{} `json:"contact_name"`
+	ContactDetail interface{} `json:"contact_detail"`
+	ImageID       interface{} `json:"image_id"`
+	ImageUrl      interface{} `json:"image_url"`
 }
 
 func (q *Queries) GetAssetsByUsername(ctx context.Context, arg GetAssetsByUsernameParams) ([]GetAssetsByUsernameRow, error) {

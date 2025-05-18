@@ -22,7 +22,7 @@ func (server *Server) AddNewImage(c *fiber.Ctx) error{
 	files := form.File["images"]
 	for _, file := range files{
 		uniqueName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), file.Filename)
-		dst := fmt.Sprintf("../uploads/%s", uniqueName)
+		dst := fmt.Sprintf("./uploads/%s", uniqueName)
 		if err := c.SaveFile(file, dst) ; err != nil{
 			return fiber.NewError(fiber.StatusInternalServerError, "upload failed.")
 		}
@@ -57,7 +57,7 @@ func (server *Server) DeleteImage(c *fiber.Ctx) error{
 		return fiber.NewError(fiber.StatusInternalServerError, "cannot get image.")
 	}
 
-	filePath := fmt.Sprintf("../%s", imageData.ImageUrl)
+	filePath := fmt.Sprintf("./%s", imageData.ImageUrl)
 	if err = os.Remove(filePath) ; err != nil{
 		fmt.Printf("failed to delete file: %v\n", err)
 	}
