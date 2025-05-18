@@ -11,7 +11,6 @@ import (
 
 func (server *Server) AuthMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		log.Println("middlware called")
 		tokenCookie := c.Cookies("token", "invalid token")
 		payload, err := server.tokenMaker.VerifyToken(tokenCookie)
 		if err != nil {
@@ -71,7 +70,6 @@ func (server *Server) AssetMiddleware() fiber.Handler {
 
 func (server *Server) AdminMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		log.Println("middleware called")
 		userData := c.Locals("user")
 		user, ok := userData.(db.User)
 		if !ok {
